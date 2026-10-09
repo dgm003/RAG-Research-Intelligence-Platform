@@ -1,33 +1,44 @@
+
 from pathlib import Path
-from typing import Dict, List
 
-from pypdf import PdfReader
-
-
-def extract_pdf(path: str | Path) -> Dict:
-    """Extract text and basic metadata from one PDF."""
-    path = Path(path)
-    reader = PdfReader(str(path))
-
-    pages: List[Dict] = []
-    text_parts: List[str] = []
-
-    for page_number, page in enumerate(reader.pages, start=1):
-        text = (page.extract_text() or "").strip()
-        pages.append({"page": page_number, "text": text})
-        if text:
-            text_parts.append(text)
-
-    return {
-        "paper_id": path.stem,
-        "filename": path.name,
-        "num_pages": len(reader.pages),
-        "text": "\n\n".join(text_parts),
-        "pages": pages,
-    }
+import pymupdf  # PyMuPDF
 
 
-def load_corpus(input_dir: str | Path) -> List[Dict]:
-    input_dir = Path(input_dir)
-    pdfs = sorted(input_dir.glob("*.pdf"))
-    return [extract_pdf(pdf) for pdf in pdfs]
+def extract_pdf(pdf_path: str | Path) -> list[dict]:
+    """Extract text page-by-page, preserving page numbers."""
+    pdf_path = Path(pdf_path)
+    pages = []
+
+    with pymupdf.open(pdf_path) as document:
+        for page_number, page in enumerate(document, start=1):
+            text = page.get_text("text").strip()
+
+            if text:
+                pages.append({
+                    "source_file": pdf_path.name,
+                    "page_number": page_number,
+                    "text": text,
+                })
+
+    return pages
+
+
+if __name__ == "__main__":
+    pdf_files = list(
+        Path("data/raw").rglob("*.pdf")
+    )
+
+    if not pdf_files:
+        print("No PDFs found in data/raw/")
+    else:
+        sample_pdf = pdf_files[0]
+        pages = extract_pdf(sample_pdf)
+
+        print(f"PDF: {sample_pdf.name}")
+        print(f"Pages with text: {len(pages)}")
+
+        if pages:
+            print("\nFirst page preview:\n")
+            print(pages[0]["text"][:1000])
+        else:
+            print("No extractable text found. This PDF may require OCR.")

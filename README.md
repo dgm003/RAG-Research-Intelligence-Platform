@@ -1,84 +1,140 @@
 # Research Intelligence Platform
 
-An end-to-end research/technical document intelligence platform combining:
+An end-to-end research paper intelligence platform combining Machine Learning, semantic search, vector databases, and Retrieval-Augmented Generation (RAG).
 
-- ML-based document clustering/classification
-- Semantic embeddings
-- Vector search / RAG
-- LLM grounded question answering with citations
-- Paper similarity and potential-overlap detection
-- Streamlit UI
-- FastAPI backend
-- Docker
-- AWS deployment
+## Project Overview
 
-## Current milestone: Phase 1 — Document embeddings + clustering
+The platform processes research papers, converts their content into vector embeddings, and indexes those embeddings for efficient semantic retrieval. The goal is to enable research discovery, paper similarity analysis, and question answering grounded in academic sources.
 
-The first version intentionally uses **user-provided PDFs**. We will not use filenames as labels. The pipeline extracts paper text, creates semantic embeddings, clusters papers with K-Means, and saves metadata/results for inspection.
+## Current Progress
 
-## Planned architecture
+- [x] OpenAlex research paper collection
+- [x] PDF text extraction using PyMuPDF
+- [x] Page-aware text chunking
+- [x] Embedding generation using Sentence Transformers
+- [x] FAISS vector index creation
+
+### Current Dataset
+
+| Metric | Value |
+|---|---:|
+| Research papers processed | 168 |
+| Text chunks generated | 15,412 |
+| Embedding dimensions | 384 |
+| Embedding model | all-MiniLM-L6-v2 |
+| Vector index | FAISS IndexFlatIP |
+
+## Technology Stack
+
+- **Language:** Python
+- **Data source:** OpenAlex API
+- **PDF processing:** PyMuPDF
+- **Embeddings:** Sentence Transformers
+- **Vector search:** FAISS
+- **Data formats:** JSONL, NumPy, CSV
+
+## Architecture
+
+1. **Paper ingestion:** Download open-access research papers and metadata.
+2. **PDF extraction:** Extract text page-by-page while preserving source information.
+3. **Chunking:** Divide extracted text into smaller overlapping sections.
+4. **Embedding generation:** Convert each chunk into a 384-dimensional vector.
+5. **Vector indexing:** Store vectors in a FAISS index for similarity-based retrieval.
+
+### Pipeline
 
 ```text
-PDF corpus
-   |
-   v
-Text extraction / cleaning
-   |
-   v
-Embedding model
-   |
-   +--------------------+
-   |                    |
-   v                    v
-K-Means clustering   Vector index
-   |                    |
-   v                    v
-Topic metadata       RAG retrieval
-                        |
-                        v
-                    Reranking
-                        |
-                        v
-                       LLM
-                        |
-                        v
-                 Answer + citations
-
-Similarity module: paper-to-paper and passage-to-passage similarity
-
-Deployment: Streamlit + FastAPI + Docker + AWS
+Research Papers (PDF)
+        ↓
+PDF Text Extraction
+        ↓
+Text Chunking
+        ↓
+Sentence Transformer Embeddings
+        ↓
+FAISS Vector Index
+        ↓
+Semantic Search and RAG (Planned)
 ```
 
-## Local setup
+## Project Structure
 
-Python 3.11+ is recommended.
+```text
+RAG-Research-Intelligence-Platform/
+├── api/
+├── app/
+├── data/
+│   ├── raw/
+│   ├── metadata/
+│   └── processed/
+├── scripts/
+│   ├── download_papers.py
+│   └── process_paper.py
+├── src/
+│   ├── document_processing/
+│   │   ├── pdf_loader.py
+│   │   └── chunker.py
+│   ├── embeddings/
+│   │   ├── embedder.py
+│   │   └── vector_store.py
+│   ├── ml/
+│   ├── rag/
+│   └── similarity/
+├── tests/
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+└── PROJECT_PLAN.md
+```
+
+## Running the Pipeline
+
+Run commands from the project root.
+
+### 1. Install dependencies
 
 ```bash
-python -m venv .venv
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
-# macOS/Linux
-source .venv/bin/activate
-
 pip install -r requirements.txt
+pip install pymupdf sentence-transformers faiss-cpu
 ```
 
-Put research PDFs in:
-
-```text
-data/raw/
-```
-
-Run the Phase 1 pipeline:
+### 2. Extract and chunk papers
 
 ```bash
-python -m src.ml.cluster_papers --input-dir data/raw --output-dir data/processed --k 6
+python scripts/process_paper.py
 ```
 
-Outputs:
+This generates `data/processed/paper_chunks.jsonl`.
 
-- `data/processed/papers.csv`
-- `data/processed/paper_embeddings.npy`
-- `data/processed/clusters.csv`
+### 3. Generate embeddings
 
-The value of `k=6` is only a starting point. We will later compare multiple K values using clustering metrics and human inspection rather than assuming six topics are correct.
+```bash
+python -m src.embeddings.embedder
+```
+
+This generates the embedding vectors and their associated metadata.
+
+### 4. Build the FAISS index
+
+```bash
+python -m src.embeddings.vector_store
+```
+
+This creates the FAISS index for similarity search.
+
+**Note:** The raw PDFs, generated chunks, embeddings, and FAISS index are stored locally and are not included in the Git repository.
+
+## Roadmap
+
+- [ ] Implement semantic search
+- [ ] Evaluate and visualize ML paper clustering
+- [ ] Build research paper similarity analysis
+- [ ] Implement RAG-based question answering
+- [ ] Add source and page citations
+- [ ] Develop the Streamlit interface
+- [ ] Build and deploy the FastAPI backend
+- [ ] Containerize and deploy to a cloud platform
+
+## Project Goal
+
+Build a practical research intelligence system demonstrating document processing, machine learning, vector retrieval, LLM integration, and cloud deployment.
