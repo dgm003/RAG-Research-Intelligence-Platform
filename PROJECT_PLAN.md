@@ -20,7 +20,7 @@
 ## Phase 3 — Vector search + RAG
 - [ ] FAISS index
 - [ ] Metadata filtering
-- [ ] Top-K retrieval
+- [x] Top-K retrieval (done)
 - [ ] Reranking
 - [ ] LLM generation
 - [ ] Source/page citations

@@ -13,6 +13,7 @@ The platform processes research papers, converts their content into vector embed
 - [x] Page-aware text chunking
 - [x] Embedding generation using Sentence Transformers
 - [x] FAISS vector index creation
+- [x] Semantic search (top-k retrieval with source and page)
 
 ### Current Dataset
 
@@ -76,7 +77,8 @@ RAG-Research-Intelligence-Platform/
 │   │   └── chunker.py
 │   ├── embeddings/
 │   │   ├── embedder.py
-│   │   └── vector_store.py
+│   │   ├── vector_store.py
+│   │   └── search.py
 │   ├── ml/
 │   ├── rag/
 │   └── similarity/
@@ -98,10 +100,18 @@ pip install -r requirements.txt
 pip install pymupdf sentence-transformers faiss-cpu
 ```
 
+### 1b. Download papers
+
+Create a `.env` file in the project root with `OPENALEX_API_KEY=your_key_here`, then run:
+
+```bash
+python scripts/download_papers.py --topic "transformers" --count 20 --from-year 2020
+```
+
 ### 2. Extract and chunk papers
 
 ```bash
-python scripts/process_paper.py
+python -m scripts.process_paper
 ```
 
 This generates `data/processed/paper_chunks.jsonl`.
@@ -120,13 +130,18 @@ This generates the embedding vectors and their associated metadata.
 python -m src.embeddings.vector_store
 ```
 
+### 5. Run semantic search
+
+```bash
+python -m src.embeddings.search "your query" -k 5
+```
 This creates the FAISS index for similarity search.
 
 **Note:** The raw PDFs, generated chunks, embeddings, and FAISS index are stored locally and are not included in the Git repository.
 
 ## Roadmap
 
-- [ ] Implement semantic search
+- [x] Implement semantic search
 - [ ] Evaluate and visualize ML paper clustering
 - [ ] Build research paper similarity analysis
 - [ ] Implement RAG-based question answering
