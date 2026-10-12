@@ -1,3 +1,4 @@
+
 import argparse
 import json
 from pathlib import Path
@@ -8,25 +9,21 @@ from sentence_transformers import SentenceTransformer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data" / "processed"
-
-INDEX_FILE = DATA_DIR / "papers.faiss"
-METADATA_FILE = DATA_DIR / "embedding_metadata.jsonl"
-
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 
 class SemanticSearcher:
-    def __init__(self):
-        if not INDEX_FILE.exists():
-            raise FileNotFoundError(
-                f"FAISS index not found: {INDEX_FILE}. "
-                "Run `python -m src.embeddings.vector_store` first."
-            )
+    def __init__(self, index_name="papers.faiss", metadata_name="embedding_metadata.jsonl"):
+        index_file = DATA_DIR / index_name
+        metadata_file = DATA_DIR / metadata_name
 
-        self.index = faiss.read_index(str(INDEX_FILE))
+        if not index_file.exists() or not metadata_file.exists():
+            raise FileNotFoundError("FAISS index or metadata file not found.")
+
+        self.index = faiss.read_index(str(index_file))
         self.model = SentenceTransformer(MODEL_NAME)
 
-        with METADATA_FILE.open("r", encoding="utf-8") as file:
+        with metadata_file.open("r", encoding="utf-8") as file:
             self.metadata = [json.loads(line) for line in file if line.strip()]
 
         if self.index.ntotal != len(self.metadata):
@@ -52,25 +49,24 @@ class SemanticSearcher:
 
 
 def _page(chunk):
-    for key in ("page", "page_number", "page_num"):
-        if key in chunk:
-            return chunk[key]
-    return "?"
+    return chunk.get("page_number", chunk.get("page", "?"))
 
 
 def main():
     parser = argparse.ArgumentParser(description="Semantic search over paper chunks.")
     parser.add_argument("query", help="Search query")
     parser.add_argument("-k", "--top-k", type=int, default=5)
+    parser.add_argument("--index", default="papers.faiss")
+    parser.add_argument("--metadata", default="embedding_metadata.jsonl")
     args = parser.parse_args()
 
-    searcher = SemanticSearcher()
+    searcher = SemanticSearcher(args.index, args.metadata)
     results = searcher.search(args.query, args.top_k)
 
     for rank, chunk in enumerate(results, start=1):
         snippet = " ".join(chunk["text"].split())[:300]
         print(f"\n[{rank}] score={chunk['score']:.3f}")
-        print(f"    source: {chunk.get('source_path', '?')} (page {_page(chunk)})")
+        print(f"    source: {chunk.get('source_file', '?')} (page {_page(chunk)})")
         print(f"    category: {chunk.get('category', '?')}")
         print(f"    {snippet}...")
 
