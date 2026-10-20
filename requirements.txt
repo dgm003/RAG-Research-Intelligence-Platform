@@ -10,8 +10,8 @@ fastapi
 uvicorn[standard]
 python-multipart
 pydantic
-requests
-python-dotenv
-pymupdf
+
+ftfy
 faiss-cpu
-tqdm
+groq
+python-dotenv
