@@ -1,61 +1,90 @@
 # Research Intelligence Platform
 
-An end-to-end research paper intelligence platform combining Machine Learning, semantic search, vector databases, and Retrieval-Augmented Generation (RAG).
+An end-to-end research paper intelligence platform combining machine learning, semantic search, FAISS vector indexing, and Retrieval-Augmented Generation (RAG). The platform enables users to search academic literature and ask questions grounded in retrieved research passages.
 
 ## Project Overview
 
-The platform processes research papers, converts their content into vector embeddings, and indexes those embeddings for efficient semantic retrieval. The goal is to enable research discovery, paper similarity analysis, and question answering grounded in academic sources.
+The platform collects open-access research papers, extracts and cleans PDF text, splits documents into overlapping chunks, generates vector embeddings, and indexes them for semantic retrieval. A RAG pipeline retrieves relevant passages and uses a Groq-hosted LLM to generate answers with source references.
 
-## Current Progress
+A Streamlit interface provides an interactive research assistant, backed by a FastAPI service.
 
-- [x] OpenAlex research paper collection
+## Current Features
+
+- [x] Research paper collection using OpenAlex
 - [x] PDF text extraction using PyMuPDF
 - [x] Page-aware text chunking
+- [x] Text cleaning and normalization
 - [x] Embedding generation using Sentence Transformers
 - [x] FAISS vector index creation
-- [x] Semantic search (top-k retrieval with source and page)
+- [x] Semantic search with source metadata and similarity scores
+- [x] RAG retrieval and context assembly
+- [x] LLM-powered answer generation using Groq
+- [x] FastAPI endpoints for health checks, retrieval, and question answering
+- [x] Streamlit research chat interface
+- [x] Basic validation of generated source citation labels
+- [x] Citation-validation tests
 
-### Current Dataset
+## Dataset
 
 | Metric | Value |
 |---|---:|
-| Research papers processed | 168 |
+| Research PDFs discovered | 168 |
 | Text chunks generated | 15,412 |
 | Embedding dimensions | 384 |
-| Embedding model | all-MiniLM-L6-v2 |
-| Vector index | FAISS IndexFlatIP |
+| Embedding model | `sentence-transformers/all-MiniLM-L6-v2` |
+| Vector index | FAISS inner-product index |
+| LLM provider | Groq |
+
+The counts describe the current local dataset and may change when papers are added or reprocessed.
 
 ## Technology Stack
 
 - **Language:** Python
-- **Data source:** OpenAlex API
-- **PDF processing:** PyMuPDF
+- **Paper discovery:** OpenAlex API
+- **PDF extraction:** PyMuPDF
+- **Text processing:** ftfy, Unicode normalization
 - **Embeddings:** Sentence Transformers
 - **Vector search:** FAISS
-- **Data formats:** JSONL, NumPy, CSV
+- **Data processing:** NumPy, pandas, JSONL
+- **Backend:** FastAPI, Uvicorn, Pydantic
+- **LLM integration:** Groq API
+- **Frontend:** Streamlit
+- **Testing:** Python test scripts
 
 ## Architecture
 
-1. **Paper ingestion:** Download open-access research papers and metadata.
-2. **PDF extraction:** Extract text page-by-page while preserving source information.
-3. **Chunking:** Divide extracted text into smaller overlapping sections.
-4. **Embedding generation:** Convert each chunk into a 384-dimensional vector.
-5. **Vector indexing:** Store vectors in a FAISS index for similarity-based retrieval.
-
-### Pipeline
-
 ```text
-Research Papers (PDF)
-        ↓
+OpenAlex / Research PDFs
+          |
+          v
 PDF Text Extraction
-        ↓
-Text Chunking
-        ↓
+          |
+          v
+Text Cleaning and Chunking
+          |
+          v
 Sentence Transformer Embeddings
-        ↓
-FAISS Vector Index
-        ↓
-Semantic Search and RAG (Planned)
+          |
+          v
+FAISS Vector Index + Metadata
+          |
+          v
+User Question
+          |
+          v
+Semantic Retrieval (Top-K)
+          |
+          v
+Retrieved Context with Source Labels
+          |
+          v
+Groq LLM Answer Generation
+          |
+          v
+Answer + Source Metadata
+          |
+          v
+Streamlit UI
 ```
 
 ## Project Structure
@@ -63,93 +92,166 @@ Semantic Search and RAG (Planned)
 ```text
 RAG-Research-Intelligence-Platform/
 ├── api/
+│   └── main.py
 ├── app/
+│   └── streamlit_app.py
 ├── data/
 │   ├── raw/
-│   ├── metadata/
 │   └── processed/
 ├── scripts/
 │   ├── download_papers.py
-│   └── process_paper.py
+│   ├── process_paper.py
+│   ├── clean_papers.py
+│   ├── test_retriever.py
+│   └── test_generator.py
 ├── src/
 │   ├── document_processing/
-│   │   ├── pdf_loader.py
-│   │   └── chunker.py
 │   ├── embeddings/
-│   │   ├── embedder.py
-│   │   ├── vector_store.py
-│   │   └── search.py
 │   ├── ml/
 │   ├── rag/
+│   │   ├── retriever.py
+│   │   └── generator.py
 │   └── similarity/
 ├── tests/
+│   └── test_citations.py
 ├── requirements.txt
+├── .env.example
+├── .gitignore
 ├── Dockerfile
 ├── docker-compose.yml
-└── PROJECT_PLAN.md
+├── PROJECT_PLAN.md
+└── README.md
 ```
 
-## Running the Pipeline
+## Getting Started
 
-Run commands from the project root.
-
-### 1. Install dependencies
+### 1. Clone the repository
 
 ```bash
-pip install -r requirements.txt
-pip install pymupdf sentence-transformers faiss-cpu
+git clone https://github.com/dgm003/RAG-Research-Intelligence-Platform.git
+cd RAG-Research-Intelligence-Platform
 ```
 
-### 1b. Download papers
+### 2. Create and activate a virtual environment
 
-Create a `.env` file in the project root with `OPENALEX_API_KEY=your_key_here`, then run:
+On Windows PowerShell:
 
-```bash
-python scripts/download_papers.py --topic "transformers" --count 20 --from-year 2020
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
-### 2. Extract and chunk papers
+### 3. Install dependencies
 
-```bash
-python -m scripts.process_paper
+```powershell
+python -m pip install -r requirements.txt
 ```
 
-This generates `data/processed/paper_chunks.jsonl`.
+Ensure the requirements include the packages used by the project, including `pymupdf`, `faiss-cpu`, `sentence-transformers`, `ftfy`, `fastapi`, `uvicorn`, `streamlit`, `groq`, and `python-dotenv`.
 
-### 3. Generate embeddings
+### 4. Configure environment variables
 
-```bash
-python -m src.embeddings.embedder
+Create a `.env` file in the project root:
+
+```dotenv
+GROQ_API_KEY=your_groq_api_key
 ```
 
-This generates the embedding vectors and their associated metadata.
+Keep `.env` out of version control. Never commit API keys or secrets.
 
-### 4. Build the FAISS index
+### 5. Prepare the local research index
 
-```bash
-python -m src.embeddings.vector_store
+The RAG retriever expects these generated files:
+
+```text
+data/processed/papers_cleaned.faiss
+data/processed/paper_cleaned_embedding_metadata.jsonl
 ```
 
-### 5. Run semantic search
+If these files are not present, run the document cleaning, embedding, and index-building pipeline using the scripts and command-line options available in the repository. The raw PDFs and generated artifacts are not committed to Git.
 
-```bash
-python -m src.embeddings.search "your query" -k 5
+## Running the Application
+
+Start the FastAPI backend in the first terminal:
+
+```powershell
+python -m uvicorn api.main:app --reload
 ```
-This creates the FAISS index for similarity search.
 
-**Note:** The raw PDFs, generated chunks, embeddings, and FAISS index are stored locally and are not included in the Git repository.
+The API will be available at `http://127.0.0.1:8000`.
+
+Open the interactive API documentation at `http://127.0.0.1:8000/docs`.
+
+Start Streamlit in a second terminal:
+
+```powershell
+python -m streamlit run app/streamlit_app.py
+```
+
+Open the local URL printed by Streamlit, usually `http://localhost:8501`.
+
+The frontend currently calls the local FastAPI backend. For a public deployment, configure the frontend to use the deployed API URL.
+
+## API Endpoints
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/health` | Check API health |
+| POST | `/retrieve` | Retrieve relevant research passages |
+| POST | `/ask` | Generate an answer using retrieved context |
+
+Example request to `/ask`:
+
+```json
+{
+  "question": "What are the main challenges in distributed cloud computing?",
+  "top_k": 3
+}
+```
+
+The response includes the question, generated answer, and source metadata such as filenames, page numbers, categories, and retrieval scores.
+
+## Testing
+
+Run the citation-validation tests:
+
+```powershell
+python tests/test_citations.py
+```
+
+Additional manual checks:
+
+```powershell
+python scripts/test_retriever.py
+python scripts/test_generator.py
+```
+
+The retriever and generator checks require the corresponding local index files and a configured Groq API key.
+
+Citation validation checks whether referenced source labels exist in the retrieved context. It does not independently verify that every cited passage fully supports the associated claim.
+
+## Data and Security
+
+- Raw research PDFs, generated embeddings, and FAISS indexes are kept locally and excluded from Git.
+- API keys belong in `.env` or the hosting provider's secret configuration.
+- Do not expose API keys in source code, logs, or public repositories.
+- Public deployment requires appropriate API access controls, resource limits, and configuration.
 
 ## Roadmap
 
-- [x] Implement semantic search
-- [ ] Evaluate and visualize ML paper clustering
-- [ ] Build research paper similarity analysis
-- [ ] Implement RAG-based question answering
-- [ ] Add source and page citations
-- [ ] Develop the Streamlit interface
-- [ ] Build and deploy the FastAPI backend
-- [ ] Containerize and deploy to a cloud platform
+- [x] Research paper ingestion and preprocessing
+- [x] Semantic search with FAISS
+- [x] RAG-based question answering
+- [x] FastAPI backend
+- [x] Streamlit frontend
+- [x] Basic source-label validation
+- [ ] Evaluate retrieval quality across a representative query set
+- [ ] Improve PDF extraction and chunk-boundary quality
+- [ ] Evaluate answer faithfulness and citation correctness
+- [ ] Improve paper similarity analysis and clustering evaluation
+- [ ] Configure and test public cloud deployment
+- [ ] Add deployment monitoring and API usage controls
 
 ## Project Goal
 
-Build a practical research intelligence system demonstrating document processing, machine learning, vector retrieval, LLM integration, and cloud deployment.
+Build a practical research intelligence system demonstrating document processing, machine learning, semantic retrieval, LLM integration, API development, and cloud deployment.
