@@ -16,3 +16,4 @@ faiss-cpu
 groq
 python-dotenv
 pymupdf
+huggingface_hub

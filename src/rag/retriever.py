@@ -1,4 +1,4 @@
-
+from huggingface_hub import hf_hub_download
 import json
 from pathlib import Path
 
@@ -12,15 +12,33 @@ DATA_DIR = PROJECT_ROOT / "data" / "processed"
 INDEX_FILE = DATA_DIR / "papers_cleaned.faiss"
 METADATA_FILE = DATA_DIR / "paper_cleaned_embedding_metadata.jsonl"
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+HF_REPO_ID = "dgm003/rag-research-artifacts"
+
+
+def ensure_artifacts():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    if not INDEX_FILE.exists():
+        hf_hub_download(
+            repo_id=HF_REPO_ID,
+            filename="papers_cleaned.faiss",
+            repo_type="model",
+            local_dir=str(DATA_DIR),
+        )
+
+    if not METADATA_FILE.exists():
+        hf_hub_download(
+            repo_id=HF_REPO_ID,
+            filename="paper_cleaned_embedding_metadata.jsonl",
+            repo_type="model",
+            local_dir=str(DATA_DIR),
+        )
+
 
 
 class ResearchRetriever:
     def __init__(self):
-        if not INDEX_FILE.exists() or not METADATA_FILE.exists():
-            raise FileNotFoundError(
-                "Cleaned FAISS index or metadata not found. "
-                "Run the embedding and vector-index pipelines first."
-            )
+        ensure_artifacts()
 
         self.index = faiss.read_index(str(INDEX_FILE))
         with METADATA_FILE.open("r", encoding="utf-8") as file:
